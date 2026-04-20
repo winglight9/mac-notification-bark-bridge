@@ -1,0 +1,33 @@
+{
+  "role": "AXApplication",
+  "children": [
+    {
+      "role": "AXWindow",
+      "title": "Notification Center",
+      "children": [
+        {
+          "role": "AXGroup",
+          "identifier": "notification-card-1",
+          "children": [
+            {
+              "role": "AXStaticText",
+              "value": "Messages"
+            },
+            {
+              "role": "AXStaticText",
+              "value": "Alice"
+            },
+            {
+              "role": "AXStaticText",
+              "value": "Meet at 8 PM"
+            },
+            {
+              "role": "AXStaticText",
+              "value": "Bring the tickets."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

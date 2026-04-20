@@ -1,0 +1,9 @@
+{
+  "deviceKey": "",
+  "barkBaseURL": "https://api.day.app",
+  "sourceFilter": null,
+  "pollInterval": 2,
+  "dedupeWindow": 300,
+  "dryRun": false,
+  "promptForAccessibility": true
+}
