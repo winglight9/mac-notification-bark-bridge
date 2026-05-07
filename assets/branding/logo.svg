@@ -1,0 +1,41 @@
+<svg width="1024" height="320" viewBox="0 0 1024 320" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1024" y2="320" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="120" y1="40" x2="340" y2="280" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB454"/>
+      <stop offset="1" stop-color="#F97316"/>
+    </linearGradient>
+    <linearGradient id="accent2" x1="380" y1="70" x2="760" y2="250" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#60A5FA"/>
+      <stop offset="1" stop-color="#22C55E"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="320" rx="36" fill="url(#bg)"/>
+  <circle cx="162" cy="160" r="92" fill="url(#accent)" opacity="0.18"/>
+  <circle cx="858" cy="104" r="56" fill="#60A5FA" opacity="0.14"/>
+  <circle cx="910" cy="224" r="68" fill="#22C55E" opacity="0.12"/>
+
+  <g transform="translate(92 56)">
+    <rect x="0" y="0" width="208" height="208" rx="44" fill="#0B1220" stroke="#263244" stroke-width="4"/>
+    <path d="M104 34C71.9674 34 46 59.9674 46 92V122.2C46 131.627 43.1152 140.838 37.72 148.62L28 162H180L170.28 148.62C164.885 140.838 162 131.627 162 122.2V92C162 59.9674 136.033 34 104 34Z" fill="url(#accent)"/>
+    <path d="M86 170H122" stroke="#FFEDD5" stroke-width="10" stroke-linecap="round"/>
+    <path d="M104 32V18" stroke="#FFEDD5" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="104" cy="182" r="16" fill="#FFEDD5"/>
+    <path d="M80 90C90 84 95 76 104 76C113 76 118 84 128 90" stroke="#0B1220" stroke-width="10" stroke-linecap="round"/>
+    <path d="M70 114H138" stroke="#0B1220" stroke-width="10" stroke-linecap="round"/>
+  </g>
+
+  <text x="356" y="116" fill="#F8FAFC" font-family="Arial, Helvetica, sans-serif" font-size="56" font-weight="700">Mac Notification Bark Bridge</text>
+  <text x="356" y="164" fill="#CBD5E1" font-family="Arial, Helvetica, sans-serif" font-size="24">把 Mac 上可见的系统通知，稳稳推到 Bark 和 iPhone</text>
+  <g transform="translate(356 196)">
+    <rect x="0" y="0" width="146" height="42" rx="21" fill="#1E293B"/>
+    <text x="23" y="27" fill="#FDE68A" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">⚡ Menubar</text>
+    <rect x="160" y="0" width="140" height="42" rx="21" fill="#1E293B"/>
+    <text x="184" y="27" fill="#BFDBFE" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">🔔 Bark</text>
+    <rect x="314" y="0" width="166" height="42" rx="21" fill="#1E293B"/>
+    <text x="338" y="27" fill="#BBF7D0" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700">🛠️ Agent-ready</text>
+  </g>
+</svg>
