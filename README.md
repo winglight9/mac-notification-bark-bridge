@@ -48,7 +48,7 @@ swift run mac-notification-bark-bridge --menu-bar
 
 这个 Fork 保留了原版的主流程，但专门补强了“安装、配置、排障”这条链路，方便 Agent 或人肉部署时快速落地。
 
-### 这次新增了什么
+### 1. 独特的价值
 
 - 新增菜单栏内配置窗口，可以直接编辑规则，不用只靠命令行参数
 - 新增 `config.example.jsonc` 参考文件，字段含义和示例都写在同一个文件里
@@ -56,9 +56,7 @@ swift run mac-notification-bark-bridge --menu-bar
 - 新增日志、快照、配置文件快捷入口，排查 iPhone 消息推送异常时更快定位 Mac 侧问题
 - 新增更完整的规则模型，支持多设备 Key、多应用、多图标的转发方式
 
-### 怎么让 Agent 快速帮你安装配置
-
-如果让 Agent 帮你装，这个顺序最快：
+### 2. 简明的安装指导
 
 1. 先执行 `./scripts/build-app.sh` 生成 `build/MacNotificationBarkBridge.app`
 2. 右键应用选择“打开”，先把 macOS 的首次拦截处理掉
@@ -66,6 +64,16 @@ swift run mac-notification-bark-bridge --menu-bar
 4. 打开 `~/Library/Application Support/MacNotificationBarkBridge/config.json`
 5. 对照同目录的 `config.example.jsonc` 填好 `deviceKey` 和规则
 6. 如果不确定配置是否生效，优先点菜单栏里的 `重新加载配置`
+
+### 3. 如何让 Agent 快速帮你来安装和配置
+
+如果让 Agent 帮你装，这个顺序最快：
+
+1. 先把 `.app` 放到固定路径并启动一次，处理掉 macOS 的首次拦截
+2. 到 `系统设置 > 隐私与安全性 > 辅助功能` 给当前实际运行的 app 授权
+3. 打开 `~/Library/Application Support/MacNotificationBarkBridge/config.json`
+4. 先把 `deviceKey` 填进去，再对照 `config.example.jsonc` 配规则
+5. 通过菜单栏里的 `重新加载配置` 验证配置是否生效
 
 Agent 部署时最关键的一点是：辅助功能权限要给“当前实际运行的 app”，不要只看文件名。
 
