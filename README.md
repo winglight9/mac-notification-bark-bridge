@@ -46,6 +46,17 @@ swift run mac-notification-bark-bridge --menu-bar
 
 ## 快速开始
 
+更完整的安装说明见 [INSTALLATION.md](/Users/quzhiyuan/Opencode/MacNotificationtoBark/INSTALLATION.md)。
+
+### 0. 先看这版新增了什么
+
+如果你是从旧版本升级，或者只是想知道这次更新补了什么，重点是下面几项：
+
+- 新增了菜单栏内的配置窗口，规则可以直接在 App 里维护
+- 新增了 `config.example.jsonc` 作为带注释的参考文件
+- 新增了首次使用提示，首次安装或替换版本后更容易处理系统拦截
+- 新增了更明确的排障入口，尤其适合当前 iOS 消息推送不稳定时快速排查 Mac 侧问题
+
 ### 1. 打包菜单栏 App
 
 ```bash
@@ -85,6 +96,13 @@ open build/MacNotificationBarkBridge.app
 ```
 
 你可以通过菜单栏图标打开 `设置…`，也可以直接编辑这个文件。
+
+如果你在帮 Agent 或其他人首次安装，建议这样配置：
+
+1. 先把 `.app` 放在固定路径，再通过右键“打开”启动一次
+2. 到 `系统设置 > 隐私与安全性 > 辅助功能` 给当前运行的 app 授权
+3. 打开 `config.json` 填好 `deviceKey`
+4. 如果配置内容不确定，先参考同目录下的 `config.example.jsonc`
 
 至少需要填好：
 
@@ -274,6 +292,15 @@ build/MacNotificationBarkBridge.app
 ```
 
 并通过这个路径启动，避免权限绑到别的二进制上。
+
+### 打不开或提示配置异常时先看哪里
+
+先看这两个文件：
+
+- 实际生效配置：`~/Library/Application Support/MacNotificationBarkBridge/config.json`
+- 配置参考文件：`~/Library/Application Support/MacNotificationBarkBridge/config.example.jsonc`
+
+如果 `config.json` 里的字段写错了，程序会直接报配置错误。此时最省时间的做法是先对照 `config.example.jsonc` 修正字段，再重新加载配置。
 
 ### 日志在哪里
 
