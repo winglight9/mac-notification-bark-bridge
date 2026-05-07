@@ -44,18 +44,49 @@
 swift run mac-notification-bark-bridge --menu-bar
 ```
 
+## Fork 版本说明
+
+这个 Fork 保留了原版的主流程，但专门补强了“安装、配置、排障”这条链路，方便 Agent 或人肉部署时快速落地。
+
+### 这次新增了什么
+
+- 新增菜单栏内配置窗口，可以直接编辑规则，不用只靠命令行参数
+- 新增 `config.example.jsonc` 参考文件，字段含义和示例都写在同一个文件里
+- 新增首次使用提示，降低自定义构建版本第一次打开被系统拦住的概率
+- 新增日志、快照、配置文件快捷入口，排查 iPhone 消息推送异常时更快定位 Mac 侧问题
+- 新增更完整的规则模型，支持多设备 Key、多应用、多图标的转发方式
+
+### 怎么让 Agent 快速帮你安装配置
+
+如果让 Agent 帮你装，这个顺序最快：
+
+1. 先执行 `./scripts/build-app.sh` 生成 `build/MacNotificationBarkBridge.app`
+2. 右键应用选择“打开”，先把 macOS 的首次拦截处理掉
+3. 到 `系统设置 > 隐私与安全性 > 辅助功能` 给当前实际运行的 app 授权
+4. 打开 `~/Library/Application Support/MacNotificationBarkBridge/config.json`
+5. 对照同目录的 `config.example.jsonc` 填好 `deviceKey` 和规则
+6. 如果不确定配置是否生效，优先点菜单栏里的 `重新加载配置`
+
+Agent 部署时最关键的一点是：辅助功能权限要给“当前实际运行的 app”，不要只看文件名。
+
+### 跟原版有什么区别
+
+- 原版更偏命令行调试，这个 Fork 增加了菜单栏内配置和规则编辑能力
+- 原版需要自己理解参数和配置文件，这个 Fork 多了 `config.example.jsonc` 和首次使用提示
+- 原版更适合开发者自己跑，这个 Fork 更适合给自己、Agent 或同事快速部署后直接用
+- 原版更聚焦抓通知，这个 Fork 额外把“安装、授权、排障”这些容易卡住的地方补齐了
+
+### 修复了什么，解决了什么问题
+
+- 解决了第一次打开时不知道去哪里配 Bark Key 的问题
+- 解决了换构建产物后辅助功能权限失效、但不好判断原因的问题
+- 解决了配置文件写错后，不知道先看哪个参考文件的问题
+- 解决了 iPhone 侧推送不稳定时，没法快速确认 Mac 侧是否已经抓到通知、是否已经转发的问题
+- 解决了多设备、多应用、多规则场景下靠手工维护太累的问题
+
 ## 快速开始
 
-更完整的安装说明见 [INSTALLATION.md](/Users/quzhiyuan/Opencode/MacNotificationtoBark/INSTALLATION.md)。
-
-### 0. 先看这版新增了什么
-
-如果你是从旧版本升级，或者只是想知道这次更新补了什么，重点是下面几项：
-
-- 新增了菜单栏内的配置窗口，规则可以直接在 App 里维护
-- 新增了 `config.example.jsonc` 作为带注释的参考文件
-- 新增了首次使用提示，首次安装或替换版本后更容易处理系统拦截
-- 新增了更明确的排障入口，尤其适合当前 iOS 消息推送不稳定时快速排查 Mac 侧问题
+更完整的安装说明见 [INSTALLATION.md](./INSTALLATION.md)。
 
 ### 1. 打包菜单栏 App
 
@@ -96,13 +127,6 @@ open build/MacNotificationBarkBridge.app
 ```
 
 你可以通过菜单栏图标打开 `设置…`，也可以直接编辑这个文件。
-
-如果你在帮 Agent 或其他人首次安装，建议这样配置：
-
-1. 先把 `.app` 放在固定路径，再通过右键“打开”启动一次
-2. 到 `系统设置 > 隐私与安全性 > 辅助功能` 给当前运行的 app 授权
-3. 打开 `config.json` 填好 `deviceKey`
-4. 如果配置内容不确定，先参考同目录下的 `config.example.jsonc`
 
 至少需要填好：
 
