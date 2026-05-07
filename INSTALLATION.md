@@ -2,6 +2,12 @@
 
 ## 🚀 安装
 
+如果你只想快速用起来，按下面 3 步做就行：
+
+1. 打开 `MacNotificationBarkBridge.app`
+2. 在系统设置里给它开 `辅助功能`
+3. 在配置文件里填好 `deviceKey`
+
 构建完成的应用位于：
 
 - `build/MacNotificationBarkBridge.app`
@@ -51,6 +57,8 @@ Bark 推送的图标参数要求一个可访问的 URL。
 - 全局配置保留轮询间隔、去重窗口、辅助功能提示、登录启动等设置
 
 ## ⚙️ 配置文件
+
+如果你不知道从哪里开始，先看 `config.example.jsonc`，再改 `config.json`。
 
 程序实际读取的文件是：
 
