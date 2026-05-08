@@ -8,6 +8,14 @@
 
 如果你是普通用户，不用先看工作原理，直接看下面的“3 步上手”和“常见问题”就够了。
 
+## Mac mini 外接显示器唤醒快捷键
+
+如果你是来找 `Mac mini 外接显示器唤醒`、`显示器断电后无信号`、`AppleScript 刷新分辨率`、`免拔 Type-C 恢复窗口显示` 这类方案，可以直接看这份说明：
+
+- [docs/mac-mini-external-monitor-refresh-shortcut.md](/Users/quzhiyuan/Opencode/MacNotificationtoBark/docs/mac-mini-external-monitor-refresh-shortcut.md)
+
+这套脚本是独立附加在仓库里的，不影响当前通知转发工具本身。
+
 ## 👤 普通用户先看这里
 
 ### 你只需要做 3 件事
