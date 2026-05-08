@@ -60,7 +60,9 @@
 如果你有多块外接显示器，可以把 AppleScript 最后一行改成带参数版本，比如：
 
 ```applescript
-do shell script quoted form of runnerPath & " --display-index 2"
+tell current application
+	do shell script "/Users/quzhiyuan/Opencode/MacNotificationtoBark/scripts/refresh-external-display.sh --display-index 2"
+end tell
 ```
 
 ## 常用命令
