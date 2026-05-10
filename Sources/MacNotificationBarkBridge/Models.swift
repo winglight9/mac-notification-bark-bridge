@@ -84,10 +84,11 @@ struct ForwardedNotification: Equatable, Hashable, Sendable {
     }
 
     var barkTitle: String {
-        if title.fingerprint == source.fingerprint {
-            return source
+        let trimmedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedTitle.isEmpty {
+            return trimmedTitle
         }
-        return "\(source) | \(title)"
+        return source
     }
 }
 
@@ -103,6 +104,7 @@ enum BridgeError: Error, CustomStringConvertible, Sendable {
     case accessibilityPermissionDenied
     case notificationCenterNotRunning
     case barkRejected(statusCode: Int, body: String)
+    case launchAtLoginUnavailable
 
     var description: String {
         switch self {
@@ -128,6 +130,8 @@ enum BridgeError: Error, CustomStringConvertible, Sendable {
             return "通知中心进程未运行。"
         case .barkRejected(let statusCode, let body):
             return "Bark 请求失败，状态码 \(statusCode)：\(body)"
+        case .launchAtLoginUnavailable:
+            return "当前系统版本不支持开机启动设置。"
         }
     }
 }

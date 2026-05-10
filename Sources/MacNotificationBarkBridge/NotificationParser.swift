@@ -2,12 +2,17 @@ import Foundation
 
 struct NotificationParser: Sendable {
     private let containerRoles: Set<String> = [
-        "AXApplication",
         "AXGroup",
         "AXList",
         "AXRow",
         "AXScrollArea",
         "AXWindow",
+    ]
+    private let ignoredSubtreeRoles: Set<String> = [
+        "AXMenuBar",
+        "AXMenuBarItem",
+        "AXMenu",
+        "AXMenuItem",
     ]
     private let notificationSubroles: Set<String> = [
         "AXNotificationCenterBanner",
@@ -36,7 +41,16 @@ struct NotificationParser: Sendable {
 
     func parse(from root: AccessibilityNode, sourceFilter: String?) -> [ForwardedNotification] {
         let filter = sourceFilter?.fingerprint
-        let matches = collectCandidates(from: root, filter: filter)
+        let notificationRoots = notificationNodes(in: root)
+        let matches: [ForwardedNotification]
+
+        if notificationRoots.isEmpty {
+            matches = collectCandidates(from: root, filter: filter, bannerOnly: false)
+        } else {
+            matches = notificationRoots.flatMap { node in
+                collectCandidates(from: node, filter: filter, bannerOnly: true)
+            }
+        }
 
         var exactSeen = Set<String>()
         let exactUnique = matches.filter { exactSeen.insert($0.signature).inserted }
@@ -57,13 +71,14 @@ struct NotificationParser: Sendable {
 
     private func collectCandidates(
         from node: AccessibilityNode,
-        filter: String?
+        filter: String?,
+        bannerOnly: Bool
     ) -> [ForwardedNotification] {
         let childMatches = node.children.flatMap { child in
-            collectCandidates(from: child, filter: filter)
+            collectCandidates(from: child, filter: filter, bannerOnly: bannerOnly)
         }
 
-        if let notification = candidate(from: node), matchesFilter(notification, filter: filter) {
+        if let notification = candidate(from: node, bannerOnly: bannerOnly), matchesFilter(notification, filter: filter) {
             let childContentSignatures = Set(childMatches.map(\.contentSignature))
             if !childContentSignatures.contains(notification.contentSignature) {
                 return childMatches + [notification]
@@ -73,8 +88,12 @@ struct NotificationParser: Sendable {
         return childMatches
     }
 
-    private func candidate(from node: AccessibilityNode) -> ForwardedNotification? {
+    private func candidate(from node: AccessibilityNode, bannerOnly: Bool) -> ForwardedNotification? {
         guard let role = node.role, containerRoles.contains(role) else {
+            return nil
+        }
+
+        guard !containsIgnoredSubtreeRole(node) else {
             return nil
         }
 
@@ -87,6 +106,10 @@ struct NotificationParser: Sendable {
 
         if let subrole = node.subrole, notificationSubroles.contains(subrole) {
             return notificationCenterCandidate(from: node, texts: texts)
+        }
+
+        guard !bannerOnly else {
+            return nil
         }
 
         guard texts.count >= 2, texts.count <= 6 else {
@@ -200,6 +223,28 @@ struct NotificationParser: Sendable {
         ].joined(separator: "\n").fingerprint
 
         return haystack.contains(filter)
+    }
+
+    private func notificationNodes(in node: AccessibilityNode) -> [AccessibilityNode] {
+        var matches: [AccessibilityNode] = []
+
+        if let subrole = node.subrole, notificationSubroles.contains(subrole) {
+            matches.append(node)
+        }
+
+        for child in node.children {
+            matches.append(contentsOf: notificationNodes(in: child))
+        }
+
+        return matches
+    }
+
+    private func containsIgnoredSubtreeRole(_ node: AccessibilityNode) -> Bool {
+        if let role = node.role, ignoredSubtreeRoles.contains(role) {
+            return true
+        }
+
+        return node.children.contains(where: containsIgnoredSubtreeRole)
     }
 
     private func looksLikeRelativeTime(_ text: String) -> Bool {

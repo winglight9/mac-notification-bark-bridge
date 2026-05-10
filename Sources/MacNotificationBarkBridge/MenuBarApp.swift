@@ -7,6 +7,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
     private let configurationStore = ConfigurationStore()
     private let diagnosticsStore = DiagnosticsStore()
     private let logger = FileBridgeLogger()
+    private lazy var idleScreenDimmingController = IdleScreenDimmingController(logger: logger)
     private let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
@@ -43,8 +44,8 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         keyEquivalent: ""
     )
     private lazy var openConfigMenuItem = NSMenuItem(
-        title: "打开配置文件",
-        action: #selector(openConfigurationFile(_:)),
+        title: "打开配置目录",
+        action: #selector(openConfigurationDirectory(_:)),
         keyEquivalent: ""
     )
     private lazy var openLogMenuItem = NSMenuItem(
@@ -66,8 +67,9 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
     private var configuration: AppConfiguration?
     private var service: BridgeService?
     private var pollingTask: Task<Void, Never>?
-    private var isMonitoringEnabled = true
     private var configurationWindowController: ConfigurationWindowController?
+    private var isMonitoringEnabled = true
+    private var didPresentSetupNotice = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApplication.shared.setActivationPolicy(.accessory)
@@ -76,10 +78,12 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
             await logger.log(.info, "app.launch \(currentProcessLogContext())")
         }
         refreshConfiguration(startMonitoring: true)
+        presentSetupNoticeIfNeeded()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         pollingTask?.cancel()
+        idleScreenDimmingController.stop()
         Task {
             await logger.log(.info, "app.terminate")
         }
@@ -118,17 +122,21 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
 
             let configuration = try configurationStore.load()
             self.configuration = configuration
+            Task {
+                await logger.updateRetentionDays(configuration.diagnosticsRetentionDays)
+            }
             self.service = makeBridgeService(configuration: configuration, logger: logger)
+            idleScreenDimmingController.apply(configuration: configuration)
 
-            let filterText = configuration.sourceFilter ?? "全部通知"
+            let filterText = configuration.monitoredApplicationsDescription
             updateStatus(
                 title: "状态：就绪",
-                detail: "正在监听：\(filterText)"
+                detail: "规则 \(configuration.rules.count) 条，监听：\(filterText)"
             )
             Task {
                 await logger.log(
                     .info,
-                    "app.config_loaded filter=\(filterText) pollInterval=\(configuration.pollInterval) dryRun=\(configuration.dryRun)"
+                    "app.config_loaded rules=\(configuration.rules.count) monitoredApps=\(filterText) pollInterval=\(configuration.pollInterval) dryRun=\(configuration.dryRun)"
                 )
             }
 
@@ -138,6 +146,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         } catch {
             configuration = nil
             service = nil
+            idleScreenDimmingController.stop()
             stopMonitoringLoop()
             updateErrorStatus(error)
             Task {
@@ -363,9 +372,9 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    @objc private func openConfigurationFile(_ sender: Any?) {
+    @objc private func openConfigurationDirectory(_ sender: Any?) {
         do {
-            let url = try configurationStore.ensureConfigurationFileExists()
+            let url = try configurationStore.configurationDirectoryURL()
             NSWorkspace.shared.open(url)
         } catch {
             updateErrorStatus(error)
@@ -402,6 +411,30 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func quit(_ sender: Any?) {
         NSApplication.shared.terminate(nil)
+    }
+
+    private func presentSetupNoticeIfNeeded() {
+        guard !didPresentSetupNotice else {
+            return
+        }
+        didPresentSetupNotice = true
+
+        let defaults = UserDefaults.standard
+        guard defaults.bool(forKey: "didShowCustomBuildNotice") == false else {
+            return
+        }
+
+        let alert = NSAlert()
+        alert.messageText = "首次使用提示"
+        alert.informativeText = """
+        这是自定义构建的应用，可能没有经过 Apple 公证。首次安装或替换新版本后，若系统阻止打开，请在 Finder 中右键应用选择“打开”，或到“系统设置 > 隐私与安全性”里手动放行。
+
+        此外，本应用需要辅助功能权限才能读取通知中心内容。
+        Bark 设备 Key 等高级项建议直接编辑配置文件；设置窗口更适合调整监听规则和常用开关。
+        """
+        alert.addButton(withTitle: "知道了")
+        alert.runModal()
+        defaults.set(true, forKey: "didShowCustomBuildNotice")
     }
 }
 

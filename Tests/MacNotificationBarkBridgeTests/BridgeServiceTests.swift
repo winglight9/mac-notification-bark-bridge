@@ -1,5 +1,5 @@
 import Foundation
-import Testing
+import XCTest
 @testable import MacNotificationBarkBridge
 
 actor TestLogger: BridgeLogging {
@@ -16,31 +16,41 @@ actor TestLogger: BridgeLogging {
     }
 }
 
-@Test func bridgeServiceDryRunProcessesFixtureWithoutNetwork() async throws {
-    let fixtureURL = try #require(Bundle.module.url(
-        forResource: "sample-notification-tree",
-        withExtension: "json",
-        subdirectory: "Fixtures"
-    ))
+final class BridgeServiceTests: XCTestCase {
+    func testBridgeServiceDryRunProcessesFixtureWithoutNetwork() async throws {
+        let fixtureURL = try XCTUnwrap(Bundle.module.url(
+            forResource: "sample-notification-tree",
+            withExtension: "json",
+            subdirectory: "Fixtures"
+        ))
 
-    let configuration = AppConfiguration(
-        deviceKey: "test",
-        barkBaseURL: URL(string: "https://api.day.app")!,
-        sourceFilter: "messages",
-        pollInterval: 1,
-        dryRun: true,
-        runOnce: true,
-        dumpTree: false,
-        fixturePath: fixtureURL.path,
-        promptForAccessibility: false,
-        dedupeWindow: 300
-    )
+        let configuration = AppConfiguration(
+            rules: [
+                NotificationRoutingRule(
+                    id: "rule-1",
+                    name: "Messages",
+                    barkBaseURL: URL(string: "https://api.day.app")!,
+                    deviceKeys: ["test"],
+                    applicationNames: ["Messages"],
+                    iconURL: nil
+                )
+            ],
+            pollInterval: 1,
+            dryRun: true,
+            runOnce: true,
+            dumpTree: false,
+            fixturePath: fixtureURL.path,
+            promptForAccessibility: false,
+            dedupeWindow: 300,
+            launchAtLogin: false,
+            diagnosticsRetentionDays: 7,
+            idleScreenDimmingEnabled: false,
+            idleScreenDimmingDelay: 600,
+            idleScreenDimmingOpacity: 1.0
+        )
 
-    let barkClient = BarkClient(
-        baseURL: configuration.barkBaseURL,
-        deviceKey: configuration.deviceKey,
-        sender: { _ in
-            Issue.record("dry-run path should not call Bark")
+        let barkClient = BarkClient(sender: { _ in
+            XCTFail("dry-run path should not call Bark")
             let response = HTTPURLResponse(
                 url: URL(string: "https://api.day.app/test")!,
                 statusCode: 200,
@@ -48,45 +58,53 @@ actor TestLogger: BridgeLogging {
                 headerFields: nil
             )!
             return (Data(), response)
-        }
-    )
+        })
 
-    var service = BridgeService(
-        configuration: configuration,
-        snapshotProvider: FixtureSnapshotProvider(path: fixtureURL.path),
-        barkClient: barkClient
-    )
+        var service = BridgeService(
+            configuration: configuration,
+            snapshotProvider: FixtureSnapshotProvider(path: fixtureURL.path),
+            barkClient: barkClient
+        )
 
-    let notifications = try await service.runOnce()
-    #expect(notifications.count == 1)
-}
+        let notifications = try await service.runOnce()
+        XCTAssertEqual(notifications.count, 1)
+    }
 
-@Test func bridgeServiceRedactsNotificationBodyInLogs() async throws {
-    let fixtureURL = try #require(Bundle.module.url(
-        forResource: "sample-notification-tree",
-        withExtension: "json",
-        subdirectory: "Fixtures"
-    ))
+    func testBridgeServiceLogsFullNotificationBodyWithoutRedaction() async throws {
+        let fixtureURL = try XCTUnwrap(Bundle.module.url(
+            forResource: "sample-notification-tree",
+            withExtension: "json",
+            subdirectory: "Fixtures"
+        ))
 
-    let configuration = AppConfiguration(
-        deviceKey: "test",
-        barkBaseURL: URL(string: "https://api.day.app")!,
-        sourceFilter: "messages",
-        pollInterval: 1,
-        dryRun: true,
-        runOnce: true,
-        dumpTree: false,
-        fixturePath: fixtureURL.path,
-        promptForAccessibility: false,
-        dedupeWindow: 300
-    )
+        let configuration = AppConfiguration(
+            rules: [
+                NotificationRoutingRule(
+                    id: "rule-1",
+                    name: "Messages",
+                    barkBaseURL: URL(string: "https://api.day.app")!,
+                    deviceKeys: ["test"],
+                    applicationNames: ["Messages"],
+                    iconURL: nil
+                )
+            ],
+            pollInterval: 1,
+            dryRun: true,
+            runOnce: true,
+            dumpTree: false,
+            fixturePath: fixtureURL.path,
+            promptForAccessibility: false,
+            dedupeWindow: 300,
+            launchAtLogin: false,
+            diagnosticsRetentionDays: 7,
+            idleScreenDimmingEnabled: false,
+            idleScreenDimmingDelay: 600,
+            idleScreenDimmingOpacity: 1.0
+        )
 
-    let logger = TestLogger()
-    let barkClient = BarkClient(
-        baseURL: configuration.barkBaseURL,
-        deviceKey: configuration.deviceKey,
-        sender: { _ in
-            Issue.record("dry-run path should not call Bark")
+        let logger = TestLogger()
+        let barkClient = BarkClient(sender: { _ in
+            XCTFail("dry-run path should not call Bark")
             let response = HTTPURLResponse(
                 url: URL(string: "https://api.day.app/test")!,
                 statusCode: 200,
@@ -94,23 +112,23 @@ actor TestLogger: BridgeLogging {
                 headerFields: nil
             )!
             return (Data(), response)
-        }
-    )
+        })
 
-    var service = BridgeService(
-        configuration: configuration,
-        snapshotProvider: FixtureSnapshotProvider(path: fixtureURL.path),
-        barkClient: barkClient,
-        logger: logger
-    )
+        var service = BridgeService(
+            configuration: configuration,
+            snapshotProvider: FixtureSnapshotProvider(path: fixtureURL.path),
+            barkClient: barkClient,
+            logger: logger
+        )
 
-    _ = try await service.runOnce()
+        _ = try await service.runOnce()
 
-    let messages = await logger.messages()
-    let notificationLog = try #require(messages.first(where: { $0.contains("scan.notification") }))
-    #expect(notificationLog.contains("source=Messages"))
-    #expect(notificationLog.contains("title=Alice"))
-    #expect(notificationLog.contains("bodyRedacted=true"))
-    #expect(notificationLog.contains("Meet at 8 PM") == false)
-    #expect(notificationLog.contains("Bring the tickets.") == false)
+        let messages = await logger.messages()
+        let notificationLog = try XCTUnwrap(messages.first(where: { $0.contains("scan.notification") }))
+        XCTAssertTrue(notificationLog.contains("source=\"Messages\""))
+        XCTAssertTrue(notificationLog.contains("title=\"Alice\""))
+        XCTAssertTrue(notificationLog.contains("body=\"Meet at 8 PM\\nBring the tickets.\""))
+        XCTAssertFalse(notificationLog.contains("bodyRedacted=true"))
+        XCTAssertFalse(notificationLog.contains("bodyLength="))
+    }
 }

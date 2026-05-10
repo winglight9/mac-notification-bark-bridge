@@ -1,9 +1,32 @@
 import Foundation
 
-struct AppConfiguration: Equatable, Sendable {
-    let deviceKey: String
+struct NotificationRoutingRule: Equatable, Sendable, Identifiable {
+    let id: String
+    let name: String
     let barkBaseURL: URL
-    let sourceFilter: String?
+    let deviceKeys: [String]
+    let applicationNames: [String]
+    let iconURL: URL?
+
+    var monitoredAppsDescription: String {
+        applicationNames.isEmpty ? "全部应用" : applicationNames.joined(separator: ", ")
+    }
+
+    func matches(_ notification: ForwardedNotification) -> Bool {
+        guard !applicationNames.isEmpty else {
+            return true
+        }
+
+        let source = notification.source.fingerprint
+        return applicationNames.contains { applicationName in
+            let candidate = applicationName.fingerprint
+            return source.contains(candidate) || candidate.contains(source)
+        }
+    }
+}
+
+struct AppConfiguration: Equatable, Sendable {
+    let rules: [NotificationRoutingRule]
     let pollInterval: TimeInterval
     let dryRun: Bool
     let runOnce: Bool
@@ -11,6 +34,11 @@ struct AppConfiguration: Equatable, Sendable {
     let fixturePath: String?
     let promptForAccessibility: Bool
     let dedupeWindow: TimeInterval
+    let launchAtLogin: Bool
+    let diagnosticsRetentionDays: Int
+    let idleScreenDimmingEnabled: Bool
+    let idleScreenDimmingDelay: TimeInterval
+    let idleScreenDimmingOpacity: Double
 
     static func parse(
         arguments: [String] = ProcessInfo.processInfo.arguments,
@@ -93,18 +121,41 @@ struct AppConfiguration: Equatable, Sendable {
             fixturePath = expanded
         }
 
-        return AppConfiguration(
-            deviceKey: trimmedDeviceKey,
+        let applicationNames = sourceFilter?
+            .split(separator: ",")
+            .map(String.init)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty } ?? []
+
+        let rule = NotificationRoutingRule(
+            id: "command-line",
+            name: "命令行规则",
             barkBaseURL: barkURL,
-            sourceFilter: sourceFilter?.trimmingCharacters(in: .whitespacesAndNewlines),
+            deviceKeys: [trimmedDeviceKey],
+            applicationNames: applicationNames,
+            iconURL: nil
+        )
+
+        return AppConfiguration(
+            rules: [rule],
             pollInterval: interval,
             dryRun: dryRun,
             runOnce: runOnce,
             dumpTree: dumpTree,
             fixturePath: fixturePath,
             promptForAccessibility: promptForAccessibility,
-            dedupeWindow: dedupeSeconds
+            dedupeWindow: dedupeSeconds,
+            launchAtLogin: false,
+            diagnosticsRetentionDays: 7,
+            idleScreenDimmingEnabled: false,
+            idleScreenDimmingDelay: 600,
+            idleScreenDimmingOpacity: 1.0
         )
+    }
+
+    var monitoredApplicationsDescription: String {
+        let descriptions = rules.map(\.monitoredAppsDescription).stableUniqued()
+        return descriptions.joined(separator: " | ")
     }
 
     private static func value(after index: Int, from arguments: [String], for option: String) throws -> String {
@@ -126,7 +177,7 @@ struct AppConfiguration: Equatable, Sendable {
         可选：
           --menu-bar                   强制以菜单栏应用模式启动
           --bark-base-url <url>        Bark 服务地址，默认 https://api.day.app
-          --source-filter <text>       只转发来源、标题或正文包含该文本的通知
+          --source-filter <text>       只转发来源包含该文本的通知，多个值可用英文逗号分隔
           --poll-interval <seconds>    轮询间隔，默认 2 秒
           --dedupe-window <seconds>    去重时间窗口，默认 300 秒
           --dry-run                    只打印匹配结果，不调用 Bark

@@ -78,7 +78,9 @@ struct AccessibilityNotificationSnapshotProvider: NotificationSnapshotProviding 
         try await requireAccessibilityPermission()
 
         let root = try notificationCenterRoot()
-        await logPanelVisibilityIfNeeded(notificationCenterPanelIsVisible(root: root))
+        let windows = arrayValue(for: kAXWindowsAttribute, element: root)
+        await logPanelVisibilityIfNeeded(!windows.isEmpty)
+        await logWindowDiagnostics(windows, root: root)
         let captured = snapshot(element: root, depth: 0)
         return captured
     }
@@ -157,11 +159,6 @@ struct AccessibilityNotificationSnapshotProvider: NotificationSnapshotProviding 
         }
     }
 
-    private func notificationCenterPanelIsVisible(root: AXUIElement) -> Bool {
-        let windows = arrayValue(for: kAXWindowsAttribute, element: root)
-        return !windows.isEmpty
-    }
-
     private func logPanelVisibilityIfNeeded(_ isVisible: Bool) async {
         let previousVisibility = Self.panelVisibilityState.withLock { state in
             let previous = state
@@ -174,6 +171,32 @@ struct AccessibilityNotificationSnapshotProvider: NotificationSnapshotProviding 
         }
 
         await logger.log(.info, "scan.panel_state visible=\(isVisible) autoOpen=false")
+    }
+
+    private func logWindowDiagnostics(_ windows: [AXUIElement], root: AXUIElement) async {
+        let focusedWindow = elementValue(for: kAXFocusedWindowAttribute, element: root)
+        let mainWindow = elementValue(for: kAXMainWindowAttribute, element: root)
+
+        await logger.log(
+            .info,
+            "scan.windows count=\(windows.count) focused=\(focusedWindow != nil) main=\(mainWindow != nil)"
+        )
+
+        for (index, window) in windows.enumerated() {
+            let role = stringValue(for: kAXRoleAttribute, element: window) ?? "-"
+            let subrole = stringValue(for: kAXSubroleAttribute, element: window) ?? "-"
+            let title = sanitizedLogValue(stringValue(for: kAXTitleAttribute, element: window))
+            let description = sanitizedLogValue(stringValue(for: kAXDescriptionAttribute, element: window))
+            let identifier = sanitizedLogValue(stringValue(for: kAXIdentifierAttribute, element: window))
+            let childCount = arrayValue(for: kAXChildrenAttribute, element: window).count
+            let isFocused = sameElement(window, focusedWindow)
+            let isMain = sameElement(window, mainWindow)
+
+            await logger.log(
+                .info,
+                "scan.window index=\(index) role=\(role) subrole=\(subrole) title=\(title) desc=\(description) id=\(identifier) children=\(childCount) focused=\(isFocused) main=\(isMain)"
+            )
+        }
     }
 
     private func snapshot(element: AXUIElement, depth: Int) -> AccessibilityNode {
@@ -205,10 +228,14 @@ struct AccessibilityNotificationSnapshotProvider: NotificationSnapshotProviding 
     }
 
     private func childElements(for element: AXUIElement, depth: Int) -> [AXUIElement] {
-        var attributes = [kAXChildrenAttribute]
         if depth == 0 {
-            attributes.insert(kAXWindowsAttribute, at: 0)
+            let windows = arrayValue(for: kAXWindowsAttribute, element: element)
+            if !windows.isEmpty {
+                return windows
+            }
         }
+
+        let attributes = [kAXChildrenAttribute]
 
         var allChildren: [AXUIElement] = []
         for attribute in attributes {
@@ -245,6 +272,45 @@ struct AccessibilityNotificationSnapshotProvider: NotificationSnapshotProviding 
         }
 
         return values.map { $0 as! AXUIElement }
+    }
+
+    private func elementValue(for attribute: String, element: AXUIElement) -> AXUIElement? {
+        var rawValue: CFTypeRef?
+        let error = AXUIElementCopyAttributeValue(element, attribute as CFString, &rawValue)
+        guard error == .success, let rawValue else {
+            return nil
+        }
+
+        return rawValue as! AXUIElement?
+    }
+
+    private func sameElement(_ lhs: AXUIElement, _ rhs: AXUIElement?) -> Bool {
+        guard let rhs else {
+            return false
+        }
+
+        return CFEqual(lhs, rhs)
+    }
+
+    private func sanitizedLogValue(_ value: String?) -> String {
+        guard let value else {
+            return "-"
+        }
+
+        let collapsed = value
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+
+        guard !collapsed.isEmpty else {
+            return "-"
+        }
+
+        if collapsed.count <= 80 {
+            return collapsed
+        }
+
+        let endIndex = collapsed.index(collapsed.startIndex, offsetBy: 80)
+        return String(collapsed[..<endIndex]) + "..."
     }
 }
 

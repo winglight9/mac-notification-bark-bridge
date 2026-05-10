@@ -1,9 +1,106 @@
 {
-  "deviceKey": "",
-  "barkBaseURL": "https://api.day.app",
-  "sourceFilter": null,
+  // MacNotificationBarkBridge v1.2.0
+  // 这是带注释的配置模板。程序支持读取这种“带注释的 JSON”。
+  //
+  // 使用建议：
+  // 1. 一条规则只负责一类应用，这样图标最清晰。
+  // 2. 同一个应用要发给多个 Bark 设备时，把多个 key 都放进 deviceKeys。
+  // 3. iconURL 建议使用长期稳定的 HTTPS 地址。
+  // 4. applicationNames 为空数组时，表示这条规则接收所有通知。
+
+  "rules": [
+    {
+      // 规则 ID：建议保持稳定，便于以后人工维护。
+      "id": "quzhiyuan-discord",
+
+      // 规则名称：只用于人类阅读，不影响程序逻辑。
+      "name": "quzhiyuan Discord",
+
+      // Bark 设备 Keys：可配置 1 个或多个。
+      // 同一条通知会发给这里列出的所有设备。
+      "deviceKeys": [
+        "YOUR_BARK_DEVICE_KEY"
+      ],
+
+      // Bark 服务地址：默认官方地址就是 https://api.day.app
+      "barkBaseURL": "https://api.day.app",
+
+      // 要监听的应用名称列表。
+      // 程序会用“通知来源名”去匹配这里的字符串。
+      // 例如：["Discord"]、["Telegram"]、["Google Chrome"]。
+      "applicationNames": [
+        "Discord"
+      ],
+
+      // Bark 推送图标。
+      // 必须是一个可公开访问的 HTTPS 图片地址。
+      // 为空时，Bark 会回退到它自己的默认图标。
+      "iconURL": "https://example.com/icons/discord-bark.png"
+    },
+
+    {
+      // 下面这条是第二个例子：同一个人只收 Telegram。
+      "id": "quzhiyuan-telegram",
+      "name": "quzhiyuan Telegram",
+      "deviceKeys": [
+        "YOUR_BARK_DEVICE_KEY"
+      ],
+      "barkBaseURL": "https://api.day.app",
+      "applicationNames": [
+        "Telegram"
+      ],
+      "iconURL": "https://example.com/icons/telegram-bark.png"
+    },
+
+    {
+      // 下面这条演示“同一个应用发给另一台设备”。
+      "id": "zhangsusu-discord",
+      "name": "zhangsusu Discord",
+      "deviceKeys": [
+        "ANOTHER_BARK_DEVICE_KEY"
+      ],
+      "barkBaseURL": "https://api.day.app",
+      "applicationNames": [
+        "Discord"
+      ],
+      "iconURL": "https://example.com/icons/discord-bark.png"
+    }
+  ],
+
+  // 轮询间隔，单位秒。
+  // 越小越及时，但扫描频率越高。默认 2 秒已经比较合适。
   "pollInterval": 2,
+
+  // 去重窗口，单位秒。
+  // 同一条通知在这个时间窗口内不会重复转发。
   "dedupeWindow": 300,
+
+  // 仅调试，不真正发 Bark。
+  // true  表示只在日志里看命中结果；
+  // false 表示真的发送推送。
   "dryRun": false,
-  "promptForAccessibility": true
+
+  // 需要时是否弹出辅助功能授权请求。
+  "promptForAccessibility": true,
+
+  // 是否在登录 macOS 时自动启动。
+  "launchAtLogin": true,
+
+  // 诊断日志和快照至少保留多少天。
+  // 这些文件会包含完整通知内容，不做脱敏。
+  // 最小值为 7。
+  "diagnosticsRetentionDays": 7,
+
+  // 是否启用“空闲遮罩降亮”模式。
+  // 启用后，程序会在长时间无键盘鼠标活动时覆盖一层黑色遮罩，
+  // 模拟把屏幕亮度降到最低，但不会真的让显示器熄屏。
+  "idleScreenDimmingEnabled": false,
+
+  // 触发空闲遮罩的延迟，单位秒。
+  // 例如 600 表示 10 分钟无操作后开始遮罩。
+  "idleScreenDimmingDelay": 600,
+
+  // 遮罩不透明度，范围 0 到 1。
+  // 1 表示纯黑，0.95 表示接近纯黑但略透。
+  "idleScreenDimmingOpacity": 1.0
 }
