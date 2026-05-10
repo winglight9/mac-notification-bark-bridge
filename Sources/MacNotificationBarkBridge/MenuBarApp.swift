@@ -15,6 +15,7 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         return formatter
     }()
 
+    private let versionMenuItem = NSMenuItem(title: "版本：--", action: nil, keyEquivalent: "")
     private let statusMenuItem = NSMenuItem(title: "状态：启动中…", action: nil, keyEquivalent: "")
     private let detailMenuItem = NSMenuItem(title: "正在初始化", action: nil, keyEquivalent: "")
     private let configMenuItem = NSMenuItem(title: "配置：未知", action: nil, keyEquivalent: "")
@@ -90,11 +91,15 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func configureMenu() {
+        versionMenuItem.isEnabled = false
         statusMenuItem.isEnabled = false
         detailMenuItem.isEnabled = false
         configMenuItem.isEnabled = false
 
+        versionMenuItem.title = "版本：\(appVersionString())"
+
         let menu = NSMenu()
+        menu.addItem(versionMenuItem)
         menu.addItem(statusMenuItem)
         menu.addItem(detailMenuItem)
         menu.addItem(configMenuItem)
@@ -270,6 +275,22 @@ final class MenuBarAppDelegate: NSObject, NSApplicationDelegate {
         }
 
         button.toolTip = tooltip
+    }
+
+    private func appVersionString() -> String {
+        let shortVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+        let buildVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+
+        switch (shortVersion, buildVersion) {
+        case let (short?, build?) where !short.isEmpty && !build.isEmpty:
+            return "\(short) (\(build))"
+        case let (short?, _ ) where !short.isEmpty:
+            return short
+        case let (_, build?) where !build.isEmpty:
+            return build
+        default:
+            return "未知"
+        }
     }
 
     @objc private func toggleMonitoring(_ sender: Any?) {
